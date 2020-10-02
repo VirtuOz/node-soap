@@ -26,43 +26,11 @@ describe('ClientSSLSecurity', function() {
     });
   });
 
-  it('should throw if invalid (ca or client) cert or key is given', function () {
-    var instanceCert = null,
-      instanceKey = null,
-      instanceCA = null;
 
-    try {
-      instanceCert = new ClientSSLSecurity(null, cert);
-    } catch (e) {
-      //should happen!
-      instanceCert = false;
-    }
+  it('should accept extraneous data before cert encapsulation boundaries per rfc 7468', function () {
+    var certBuffer = fs.readFileSync(join(__dirname, '..', 'certs', 'agent2-cert-with-extra-data.pem'));
 
-    try {
-      instanceKey = new ClientSSLSecurity(key, null);
-    } catch (e) {
-      //should happen!
-      instanceKey = false;
-    }
-
-    try {
-      instanceCA = new ClientSSLSecurity(null, null, cert);
-    } catch (e) {
-      //should happen!
-      instanceCA = false;
-    }
-
-    if (instanceCert !== false) {
-      throw new Error('accepted wrong cert');
-    }
-
-    if (instanceKey !== false) {
-      throw new Error('accepted wrong key');
-    }
-
-    if (instanceCA !== false) {
-      throw new Error('accepted wrong CA cert');
-    }
+    var instanceCert = new ClientSSLSecurity(null, certBuffer);
   });
 
   it('should accept a Buffer as argument for the key or cert', function () {
@@ -74,5 +42,88 @@ describe('ClientSSLSecurity', function() {
     instance.should.have.property("ca", certBuffer);
     instance.should.have.property("cert", certBuffer);
     instance.should.have.property("key", keyBuffer);
+  });
+
+  it('should accept a String as argument for the key or cert', function () {
+    var certString = join(__dirname, '..', 'certs', 'agent2-cert.pem'),
+      keyString = join(__dirname, '..', 'certs', 'agent2-key.pem'),
+      certBuffer = fs.readFileSync(join(__dirname, '..', 'certs', 'agent2-cert.pem')),
+      keyBuffer = fs.readFileSync(join(__dirname, '..', 'certs', 'agent2-key.pem')),
+      instance;
+
+    instance = new ClientSSLSecurity(keyString, certString, certString);
+    instance.should.have.property("ca", certBuffer);
+    instance.should.have.property("cert", certBuffer);
+    instance.should.have.property("key", keyBuffer);
+  });
+
+  it('should not accept a integer as argument for the key', function () {
+    var instance;
+    try {
+      instance = new ClientSSLSecurity(10);
+    } catch(error) {
+      // do nothing
+    }
+    should(instance).not.be.ok();
+  });
+
+  it('should not accept a integer as argument for the key', function () {
+    var instance;
+    try {
+      instance = new ClientSSLSecurity(null, 10);
+    } catch(error) {
+      // do nothing
+    }
+    should(instance).not.be.ok();
+  });
+
+  it('should return blank string when call toXml', function () {
+    var certBuffer = fs.readFileSync(join(__dirname, '..', 'certs', 'agent2-cert.pem')),
+      keyBuffer = fs.readFileSync(join(__dirname, '..', 'certs', 'agent2-key.pem')),
+      instance;
+
+    instance = new ClientSSLSecurity(keyBuffer, certBuffer, certBuffer);
+    var xml = instance.toXML();
+    xml.should.be.exactly('');
+  });
+  it('should accept a Array as argument for the ca', function () {
+    var caList = [];
+    var instance = new ClientSSLSecurity(null, null, caList);
+    instance.should.have.property("ca", caList);
+  });
+
+  describe('forever parameter', function () {
+    it('should return different agents if parameter is not present', function () {
+      var instance = new ClientSSLSecurity();
+      var firstOptions = {};
+      var secondOptions = {};
+
+      instance.addOptions(firstOptions);
+      instance.addOptions(secondOptions);
+
+      firstOptions.agent.should.not.equal(secondOptions.agent);
+    });
+
+    it('should return the same agent if parameter is present', function () {
+      var instance = new ClientSSLSecurity();
+      var firstOptions = {forever: true};
+      var secondOptions = {forever: true};
+
+      instance.addOptions(firstOptions);
+      instance.addOptions(secondOptions);
+
+      firstOptions.agent.should.equal(secondOptions.agent);
+    });
+
+    it('should return the same agent if set in defaults', function () {
+      var instance = new ClientSSLSecurity(null, null, null, {forever: true});
+      var firstOptions = {};
+      var secondOptions = {};
+
+      instance.addOptions(firstOptions);
+      instance.addOptions(secondOptions);
+
+      firstOptions.agent.should.equal(secondOptions.agent);
+    });
   });
 });
