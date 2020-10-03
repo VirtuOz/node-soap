@@ -144,7 +144,7 @@ export class WSDL {
           }
 
           // prepare soap envelope xmlns definition string
-          self.xmlnsInEnvelope = '';
+          this.xmlnsInEnvelope = '';
 
           this.callback(err, this);
         } catch (e) {
